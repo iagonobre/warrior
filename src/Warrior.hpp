@@ -13,11 +13,20 @@ public:
     void setPosition(sf::Vector2f newPosition);
     void update(float deltaTime);
 
+    sf::FloatRect getBounds() const;
+    sf::Vector2f getPosition() const;
+
+    // Gerenciamento de munição
+    int getAmmo() const;
+    void useAmmo(int amount);
+    void addAmmo(int amount);
+
 private:
     sf::CircleShape shape;
     sf::Vector2f targetPosition;
     bool isMoving;
     float speed;
+    int ammo;
 };
 
 #endif // WARRIOR_HPP
