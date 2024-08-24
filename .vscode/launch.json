@@ -1,0 +1,15 @@
+{
+    "configurations": [
+        {
+            "name": "Iniciar",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}\\build\\main.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal"
+        }
+    ]
+}
