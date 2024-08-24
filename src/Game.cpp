@@ -6,7 +6,7 @@
 #include <iostream>
 #include "Enemy.hpp"
 
-std::vector<AmmoBox> ammoBoxes; // Vetor global para caixas de munição
+std::vector<AmmoBox> ammoBoxes;
 
 Game::Game()
     : window(sf::VideoMode(960, 500), "Guardians of the Core", sf::Style::Default, sf::ContextSettings(0, 0, 8)),
@@ -15,23 +15,22 @@ Game::Game()
 {
     window.setVerticalSyncEnabled(true);
 
-    // Configuração da base
     base.setSize(sf::Vector2f(200.0f, 100.0f));
     base.setFillColor(sf::Color(240, 240, 240));
     base.setOutlineThickness(5.0f);
     base.setOutlineColor(sf::Color(0, 100, 0));
     base.setPosition(480.0f - 100.0f, 250.0f - 50.0f);
 
-    // Inicializa o gerador de números aleatórios
     std::srand(static_cast<unsigned>(std::time(nullptr)));
 
-    // Carrega a fonte para os textos
+    // Carregar a fonte
     if (!font.loadFromFile("font.ttf"))
     {
         std::cout << "Erro ao carregar a fonte!" << std::endl;
     }
 
-    // Configuração dos textos
+    // Textos
+
     heroLifeText.setFont(font);
     heroLifeText.setCharacterSize(10);
     heroLifeText.setFillColor(sf::Color::Black);
@@ -83,39 +82,50 @@ void Game::processEvents()
 
         if (!isPaused)
         {
-            if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
+
+            if (event.type == sf::Event::MouseButtonPressed)
             {
-                sf::Vector2f newPosition(static_cast<float>(event.mouseButton.x), static_cast<float>(event.mouseButton.y));
-                warrior.moveTo(newPosition);
+                if (event.mouseButton.button == sf::Mouse::Left)
+                {
+                    sf::Vector2f newPosition(static_cast<float>(event.mouseButton.x), static_cast<float>(event.mouseButton.y));
+                    warrior.moveTo(newPosition);
+                }
             }
 
-            if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Q && timeSinceLastShot >= fireDelay)
+            // Dispara projéteis com a tecla "Q"
+            if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Q)
             {
-                fireProjectile();
-                timeSinceLastShot = sf::Time::Zero;
+                if (timeSinceLastShot >= fireDelay)
+                {
+                    fireProjectile();
+                    timeSinceLastShot = sf::Time::Zero;
+                }
             }
 
+            // Lida com o aumento da tela
             if (event.type == sf::Event::Resized)
             {
                 sf::FloatRect visibleArea(0, 0, event.size.width, event.size.height);
                 window.setView(sf::View(visibleArea));
 
-                // Reposicionar base e textos ao aumentar a tela
                 float newWidth = static_cast<float>(event.size.width);
                 float newHeight = static_cast<float>(event.size.height);
+
                 float baseWidth = base.getSize().x;
                 float baseHeight = base.getSize().y;
 
+                // Reposicionar a base no centro da tela
                 base.setPosition((newWidth - baseWidth) / 2, (newHeight - baseHeight) / 2);
-                sf::Vector2f newBasePosition = base.getPosition() + sf::Vector2f(baseWidth / 2, baseHeight / 2);
 
+                // Atualizar a posição da base para todos os inimigos existentes
+                sf::Vector2f newBasePosition = base.getPosition() + sf::Vector2f(baseWidth / 2, baseHeight / 2);
                 for (Enemy &enemy : enemies)
                 {
                     enemy.setBasePosition(newBasePosition);
                 }
                 warrior.setPosition(newBasePosition);
 
-                // Atualiza posição dos textos
+                // Atualiza a posição do texto no canto superior direito
                 heroLifeText.setPosition(newWidth - 200, 10);
                 ammoText.setPosition(newWidth - 200, 25);
                 baseLifeText.setPosition(newWidth - 200, 40);
@@ -128,8 +138,10 @@ void Game::processEvents()
 
 void Game::update()
 {
+
     if (isPaused)
     {
+
         clock.restart();
         return;
     }
@@ -156,6 +168,7 @@ void Game::update()
         return;
     }
 
+    // Regenerar a vida da base a cada 5 segundos sem levar dano
     if (timeSinceLastHit >= sf::seconds(5.0f) && baseLife < 100)
     {
         baseLife += 1;
@@ -163,36 +176,40 @@ void Game::update()
 
         float lifePercentage = static_cast<float>(baseLife) / 100.0f;
         sf::Color baseColor = sf::Color(
-            static_cast<sf::Uint8>(255 * (1.0f - lifePercentage)),
-            static_cast<sf::Uint8>(100 * lifePercentage),
-            0);
+            static_cast<sf::Uint8>(255 * (1.0f - lifePercentage)), // Mais vermelho
+            static_cast<sf::Uint8>(100 * lifePercentage),          // Menos verde
+            0                                                      // Sem azul
+        );
         base.setOutlineColor(baseColor);
     }
 
-    // Atualiza textos
+    warrior.update(deltaTime);
+
     heroLifeText.setString("VIDA: " + std::to_string(heroLife) + " | 100");
     ammoText.setString("MUNICAO: " + std::to_string(warrior.getAmmo()) + " | 100");
     baseLifeText.setString("BASE: " + std::to_string(baseLife) + " %");
     killsText.setString("KILLS: " + std::to_string(kills));
     timerText.setString(std::to_string(static_cast<int>(timeLeft)) + "s ATE VITORIA");
 
-    warrior.update(deltaTime);
-
     for (Enemy &enemy : enemies)
     {
         enemy.update(deltaTime);
         enemy.fireProjectile(enemyProjectiles, warrior.getPosition());
     }
-
+    // Atualiza os projéteis do guerreiro
     updateWarriorProjectiles(deltaTime);
+
+    // Atualiza os projéteis dos inimigos
     updateEnemyProjectiles(deltaTime);
 
     for (auto it = enemies.begin(); it != enemies.end();)
     {
         it->update(deltaTime);
+
+        sf::Vector2f enemyPosition = it->getPosition();
         sf::FloatRect baseBounds = base.getGlobalBounds();
 
-        if (baseBounds.contains(it->getPosition()))
+        if (baseBounds.contains(enemyPosition))
         {
             baseLife -= 5;
             it = enemies.erase(it);
@@ -203,15 +220,19 @@ void Game::update()
         }
     }
 
+    // Atualiza as caixas de munição
     for (auto it = ammoBoxes.begin(); it != ammoBoxes.end();)
     {
+
         it->updateBlinkingEffect();
 
+        // Se o herói tocar na caixa de munição
         if (warrior.getBounds().intersects(it->getBounds()))
         {
             warrior.addAmmo(10);
             it = ammoBoxes.erase(it);
         }
+
         else if (it->shouldBeDestroyed())
         {
             it = ammoBoxes.erase(it);
@@ -234,6 +255,7 @@ void Game::render()
     window.clear(sf::Color::White);
 
     window.draw(base);
+
     warrior.draw(window);
 
     for (Enemy &enemy : enemies)
@@ -265,23 +287,30 @@ void Game::render()
     if (isPaused)
     {
         sf::Text pauseText;
+
         pauseText.setFont(font);
         pauseText.setCharacterSize(50);
         pauseText.setFillColor(sf::Color::Black);
-        pauseText.setOrigin(pauseText.getLocalBounds().width / 2, pauseText.getLocalBounds().height / 2);
-        pauseText.setPosition(window.getSize().x / 2.0f, window.getSize().y / 2.0f);
+        pauseText.setString("PAUSADO");
 
-        if (gameWon)
+        sf::Vector2u windowSize = window.getSize();
+
+        sf::FloatRect textBounds = pauseText.getLocalBounds();
+
+        pauseText.setOrigin(textBounds.width / 2.0f, textBounds.height / 2.0f);                                  // Centralizar o texto
+        pauseText.setPosition(static_cast<float>(windowSize.x) / 2.0f, static_cast<float>(windowSize.y) / 2.0f); // Posição central
+
+        if (!gameOver && !gameWon)
+        {
+            pauseText.setString("PAUSADO");
+        }
+        else if (gameWon)
         {
             pauseText.setString("VITORIA!");
         }
-        else if (gameOver)
-        {
-            pauseText.setString("GAME OVER");
-        }
         else
         {
-            pauseText.setString("PAUSADO");
+            pauseText.setString("GAME OVER");
         }
         window.draw(pauseText);
     }
@@ -291,26 +320,28 @@ void Game::render()
 
 void Game::spawnEnemy()
 {
+    // Spawna o inimigo em uma das bordas aleatórias
     int edge = std::rand() % 4;
     sf::Vector2f spawnPosition;
 
     switch (edge)
     {
-    case 0:
+    case 0: // Borda superior
         spawnPosition = sf::Vector2f(static_cast<float>(std::rand() % window.getSize().x), 0.0f);
         break;
-    case 1:
+    case 1: // Borda inferior
         spawnPosition = sf::Vector2f(static_cast<float>(std::rand() % window.getSize().x), static_cast<float>(window.getSize().y));
         break;
-    case 2:
+    case 2: // Borda esquerda
         spawnPosition = sf::Vector2f(0.0f, static_cast<float>(std::rand() % window.getSize().y));
         break;
-    case 3:
+    case 3: // Borda direita
         spawnPosition = sf::Vector2f(static_cast<float>(window.getSize().x), static_cast<float>(std::rand() % window.getSize().y));
         break;
     }
 
     sf::Vector2f baseCenter = base.getPosition() + sf::Vector2f(base.getSize().x / 2, base.getSize().y / 2);
+
     enemies.push_back(Enemy(spawnPosition, baseCenter));
 }
 
@@ -320,8 +351,10 @@ void Game::fireProjectile()
     {
         sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
         sf::Vector2f worldPosition = window.mapPixelToCoords(mousePosition);
+
         sf::Vector2f startPosition = warrior.getPosition();
         projectiles.push_back(Projectile(startPosition, worldPosition, sf::Color::Blue));
+
         warrior.useAmmo(1);
     }
 }
@@ -330,41 +363,56 @@ void Game::updateEnemyProjectiles(float deltaTime)
 {
     for (auto it = enemyProjectiles.begin(); it != enemyProjectiles.end();)
     {
+        // Atualiza a posição do projétil
         it->update(deltaTime);
+
+        // Obter os limites do projétil para verificação de colisão
         sf::FloatRect projectileBounds = it->getBounds();
         bool projectileRemoved = false;
 
+        // Colisão com o herói
         if (projectileBounds.intersects(warrior.getBounds()))
         {
             heroLife -= 1;
+
+            // Verificar se a vida do herói chegou a 0
             if (heroLife <= 0)
             {
                 gameOver = true;
                 isPaused = true;
             }
+
             it = enemyProjectiles.erase(it);
             projectileRemoved = true;
             continue;
         }
 
+        // Colisão com a base
         if (projectileBounds.intersects(base.getGlobalBounds()))
         {
+            // Reduz a vida da base e reseta o temporizador de regeneração
             baseLife -= 1;
             timeSinceLastHit = sf::Time::Zero;
 
+            // Atualiza a cor do contorno conforme a vida cai (de verde para vermelho)
             float lifePercentage = static_cast<float>(baseLife) / 100.0f;
             sf::Color baseColor = sf::Color(
-                static_cast<sf::Uint8>(255 * (1.0f - lifePercentage)),
-                static_cast<sf::Uint8>(100 * lifePercentage),
-                0);
+                static_cast<sf::Uint8>(255 * (1.0f - lifePercentage)), // Mais vermelho
+                static_cast<sf::Uint8>(100 * lifePercentage),          // Menos verde
+                0                                                      // Sem azul
+            );
             base.setOutlineColor(baseColor);
+
+            // Remover o projétil ao colidir com a base
             it = enemyProjectiles.erase(it);
             projectileRemoved = true;
             continue;
         }
 
+        // Verifica se o projétil saiu da tela
         if (it->isOutOfBounds(window))
         {
+            // Remover o projétil quando sair da tela
             it = enemyProjectiles.erase(it);
             projectileRemoved = true;
             continue;
@@ -382,18 +430,27 @@ void Game::updateWarriorProjectiles(float deltaTime)
     for (auto it = projectiles.begin(); it != projectiles.end();)
     {
         it->update(deltaTime);
+
         sf::FloatRect projectileBounds = it->getBounds();
         bool projectileRemoved = false;
 
+        // Verifica se o projétil colidiu com algum inimigo
         for (auto enemyIt = enemies.begin(); enemyIt != enemies.end();)
         {
-            if (projectileBounds.intersects(enemyIt->getBounds()))
+            sf::FloatRect enemyBounds = enemyIt->getBounds();
+
+            // Se houver colisão entre o projétil e o inimigo
+            if (projectileBounds.intersects(enemyBounds))
             {
                 kills++;
+                // Pega a posição do inimigo
                 sf::Vector2f enemyPosition = enemyIt->getPosition();
+
+                // Remove o inimigo e o projétil
                 enemyIt = enemies.erase(enemyIt);
                 it = projectiles.erase(it);
 
+                // Adiciona uma caixa de munição na posição do inimigo destruído
                 if (warrior.getAmmo() < 100)
                 {
                     ammoBoxes.push_back(AmmoBox(enemyPosition));
@@ -408,13 +465,17 @@ void Game::updateWarriorProjectiles(float deltaTime)
             }
         }
 
-        if (!projectileRemoved && it->isOutOfBounds(window))
+        // Se o projétil foi removido devido à colisão, não verifica se está fora da tela
+        if (!projectileRemoved)
         {
-            it = projectiles.erase(it);
-        }
-        else
-        {
-            ++it;
+            if (it->isOutOfBounds(window))
+            {
+                it = projectiles.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
         }
     }
 }
