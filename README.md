@@ -4,6 +4,8 @@
 
 **Guardians of the Core** é um jogo de sobrevivência onde você controla um herói encarregado de defender uma base contra ondas de inimigos. O objetivo é manter a base intacta por 2 minutos enquanto enfrenta inimigos cada vez mais numerosos.
 
+Este projeto faz parte de um trabalho acadêmico disponível em [documento do Google](https://docs.google.com/document/d/10sExEy1eXwRF1mDzEIXVmkS7MLF5E9iqu_fhjTfRKiw/edit).
+
 ## Controles
 
 - **Movimentação do Herói**: Clique com o botão direito do mouse para mover o herói.
