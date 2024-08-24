@@ -141,13 +141,8 @@ void Game::update()
 
     if (isPaused)
     {
-        pauseVictoryTime = victoryClock.getElapsedTime();
         clock.restart();
         return;
-    }
-    else
-    {
-        totalVictoryTime += victoryClock.restart();
     }
 
     float deltaTime = clock.restart().asSeconds();
@@ -162,14 +157,19 @@ void Game::update()
         return;
     }
 
-    float timeElapsed = victoryClock.getElapsedTime().asSeconds();
-    float timeLeft = 120.0f - timeElapsed;
-
-    if (timeLeft <= 0.0f)
+    if (!isPaused)
     {
-        gameWon = true;
-        isPaused = true;
-        return;
+        float timeElapsed = victoryClock.getElapsedTime().asSeconds();
+        float timeLeft = 120.0f - timeElapsed;
+
+        if (timeLeft <= 0.0f)
+        {
+            gameWon = true;
+            isPaused = true;
+            return;
+        }
+
+        timerText.setString(std::to_string(static_cast<int>(timeLeft)) + "s ATE VITORIA");
     }
 
     // Regenerar a vida da base a cada 5 segundos sem levar dano
@@ -193,7 +193,6 @@ void Game::update()
     ammoText.setString("MUNICAO: " + std::to_string(warrior.getAmmo()) + " | 100");
     baseLifeText.setString("BASE: " + std::to_string(baseLife) + " %");
     killsText.setString("KILLS: " + std::to_string(kills));
-    timerText.setString(std::to_string(static_cast<int>(timeLeft)) + "s ATE VITORIA");
 
     for (Enemy &enemy : enemies)
     {
