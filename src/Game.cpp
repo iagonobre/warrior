@@ -147,8 +147,7 @@ void Game::update()
     }
     else
     {
-        victoryClock.restart();
-        victoryClock += pauseVictoryTime;
+        totalVictoryTime += victoryClock.restart();
     }
 
     float deltaTime = clock.restart().asSeconds();
