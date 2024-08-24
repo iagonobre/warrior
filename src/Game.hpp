@@ -52,6 +52,7 @@ private:
     sf::Time timeSinceLastHit;
     sf::Time timeSinceLastSpawn;
     sf::Time timeSinceLastShot;
+    sf::Time pauseVictoryTime;
 
     // Variável de controle de jogo
     bool isPaused = false;

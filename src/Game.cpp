@@ -141,9 +141,14 @@ void Game::update()
 
     if (isPaused)
     {
-
+        pauseVictoryTime = victoryClock.getElapsedTime();
         clock.restart();
         return;
+    }
+    else
+    {
+        victoryClock.restart();
+        victoryClock += pauseVictoryTime;
     }
 
     float deltaTime = clock.restart().asSeconds();
